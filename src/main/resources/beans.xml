@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+    <!-- 注解方式 注入 -->
+    <!-- 扫描包路径 识别   @service  -->
+    <context:component-scan base-package="com.fh.service" />
+
+    <!--数据库连接池配置 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+          destroy-method="close" lazy-init="false">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+        <property name="url" value="jdbc:mysql://localhost:3306/hhg-1908b" />
+        <property name="username" value="hhg" />
+        <property name="password" value="hhg" />
+        <property name="initialSize" value="3" />
+        <property name="maxActive" value="50" />
+        <property name="maxWait" value="30000" />
+        <property name="timeBetweenEvictionRunsMillis" value="3000" />
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+        <property name="poolPreparedStatements" value="true" />
+        <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />
+    </bean>
+    <!--扫描包路径-->
+
+    <context:component-scan base-package="com.fh" />
+    <!--  配置mybatis sqlSessionFactory-->
+    <!--生成sqlSession -->
+    <bean id="sqlSession" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <!--  自动查找myBatis的xml配置文件，省掉sqlMapConfig.xml里的mappers手工配置-->
+       <!-- <property name="mapperLocations" value="classpath:mapper/*.xml" />-->
+        <property name="mapperLocations" value="classpath:mapping/*.xml" />
+    </bean>
+    <!-- 通过 MapperScannerConfigurer自动扫描指定basePackage中的所有的接口，并且
+      把sqlSession与接口结合-->
+    <!-- 配置 MapperScan  扫描dao层接口-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.fh.dao"/>
+    </bean>
+    <bean id="t" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <!-- 配置事务的传播特性 -->
+    <tx:advice id="a" transaction-manager="t"><!-- 配置事务管理器 -->
+        <tx:attributes>
+            <tx:method name="add*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="save*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="del*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="batch*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="update*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="import*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="create*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="*" read-only="true"/>
+            <!-- 如果不是以上三种，则配置成只读事务(如select)。只读事务可以提高性能，当更新某个对象时，将不会再做脏数据检查。(因为是只读的并不用更新，所以不用再作比较,判断是否读取到脏数据。) -->
+        </tx:attributes>
+    </tx:advice>
+    <!-- .. 代表改包下任意嵌套层次的子包 -->
+    <aop:config>
+        <aop:advisor pointcut="execution(* com.fh.service..*.*(..))" advice-ref="a"/>
+    </aop:config>
+
+</beans>
